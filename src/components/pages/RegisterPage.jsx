@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios'; // axios import 추가
 import '../../App.css';
+import BackgroundImage from '../../assets/images/background-img3.png';
 
 export default function SignUpPage() {
   const navigate = useNavigate();
@@ -11,6 +12,8 @@ export default function SignUpPage() {
     first_name: '',
     email: '',
     password: '',
+    password2: '', // 비밀번호 확인용 필드 추가
+    wallet_address: '', // 지갑 주소 필드 추가
   });
 
   // 로딩 및 오류 상태 관리
@@ -32,13 +35,21 @@ export default function SignUpPage() {
     setLoading(true); // 로딩 상태 활성화
     setError(''); // 이전 오류 상태 초기화
 
+    // 비밀번호와 비밀번호 확인이 일치하는지 확인
+    if (formData.password !== formData.password2) {
+      setError('Passwords do not match.');
+      setLoading(false);
+      return;
+    }
+
     try {
       // API 요청 보내기
       const response = await axios.post('http://your-api-domain/users/register/', {
         username: formData.first_name,
         email: formData.email,
         password: formData.password,
-        password2: formData.password, // 비밀번호 확인용
+        password2: formData.password2, // 비밀번호 확인용 필드 전달
+        wallet_address: formData.wallet_address, // 지갑 주소 필드 추가
       });
 
       if (response.status === 201) {
@@ -57,8 +68,17 @@ export default function SignUpPage() {
     }
   };
 
+  const headerStyle = {
+    width: "100%",
+    height: "100vh",
+    backgroundImage: `url(${BackgroundImage})`,
+    backgroundPosition: "center",
+    backgroundRepeat: "no-repeat",
+    backgroundSize: "cover",
+  };
+
   return (
-    <div className="text-center m-5-auto">
+    <div style={headerStyle} className="text-center m-5-auto">
       <h2>Join us</h2>
       <h5>Create your personal account</h5>
       {error && <p className="error">{error}</p>}
@@ -97,6 +117,28 @@ export default function SignUpPage() {
           />
         </p>
         <p>
+          <label>Confirm Password</label> {/* 비밀번호 확인 필드 추가 */}
+          <br />
+          <input
+            type="password"
+            name="password2"
+            value={formData.password2}
+            onChange={handleChange}
+            required
+          />
+        </p>
+        <p>
+          <label>Wallet Address</label> {/* 지갑 주소 필드 추가 */}
+          <br />
+          <input
+            type="text"
+            name="wallet_address"
+            value={formData.wallet_address}
+            onChange={handleChange}
+            required
+          />
+        </p>
+        <p>
           <button id="sub_btn" type="submit" disabled={loading}>
             {loading ? 'Registering...' : 'Register'}
           </button>
@@ -110,3 +152,4 @@ export default function SignUpPage() {
     </div>
   );
 }
+

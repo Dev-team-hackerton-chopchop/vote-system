@@ -1,52 +1,92 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-
-// 임시 투표 데이터
-const initialVotes = [
-  { id: 1, topic: 'Vote on Climate Change', agree: 10, disagree: 2 },
-  { id: 2, topic: 'Vote on Remote Work', agree: 15, disagree: 5 },
-  { id: 3, topic: 'Vote on Free Internet', agree: 20, disagree: 10 },
-];
+import axios from 'axios';
+import Card from 'react-bootstrap/Card';
+import Button from 'react-bootstrap/Button';
+import 'bootstrap/dist/css/bootstrap.min.css'; // Bootstrap CSS 추가
+import votecard from '../../assets/images/votecard.png';
 
 export default function ViewandVoting() {
-  const [votes, setVotes] = useState(initialVotes);
+  const [votes, setVotes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  // 투표 처리 핸들러
-  const handleVote = (id, type) => {
-    const newVotes = votes.map((vote) => {
-      if (vote.id === id) {
-        return {
-          ...vote,
-          agree: type === 'agree' ? vote.agree + 1 : vote.agree,
-          disagree: type === 'disagree' ? vote.disagree + 1 : vote.disagree,
-        };
+  // 서버에서 투표 데이터 불러오기
+  useEffect(() => {
+    const fetchVotes = async () => {
+      try {
+        // GET /posts/ API 호출
+        const response = await axios.get('http://localhost:8000/posts/');
+        setVotes(response.data);
+        setLoading(false);
+      } catch (err) {
+        setError('Failed to load votes');
+        setLoading(false);
       }
-      return vote;
-    });
-    setVotes(newVotes);
+    };
+
+    fetchVotes();
+  }, []);
+
+  // 좋아요 처리 핸들러
+  const handleVote = async (id) => {
+    try {
+      const voteToUpdate = votes.find(vote => vote.pk === id);
+      const updatedVote = {
+        ...voteToUpdate,
+        likes: voteToUpdate.likes + 1,
+      };
+
+      // PATCH /posts/{id}/ API 호출 - 좋아요 수 증가
+      await axios.patch(`http://localhost:8000/posts/${id}/`, {
+        likes: updatedVote.likes,
+      }, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      // 로컬 상태 업데이트
+      setVotes(votes.map(vote => (vote.pk === id ? updatedVote : vote)));
+    } catch (err) {
+      setError('Failed to submit your vote');
+    }
   };
 
-  return (
-    <div>
-      <h2>Available Votes</h2>
-      {votes.map((vote) => (
-        <div key={vote.id} style={{ marginBottom: '20px', padding: '10px', border: '1px solid #ccc' }}>
-          <h3>{vote.topic}</h3>
-          <div>
-            <button onClick={() => handleVote(vote.id, 'agree')}>Agree</button>
-            <button onClick={() => handleVote(vote.id, 'disagree')}>Disagree</button>
-          </div>
-          <div style={{ marginTop: '10px' }}>
-            <p>Agree: {vote.agree}</p>
-            <p>Disagree: {vote.disagree}</p>
-          </div>
-        </div>
-      ))}
+  if (loading) {
+    return <p>Loading votes...</p>;
+  }
 
-      <footer>
-        <Link to="/">Back to Homepage</Link>
+  if (error) {
+    return <p>{error}</p>;
+  }
+
+  return (
+    <div className="container mt-5">
+      <h2>Available Votes</h2>
+      <div className="row">
+        {votes.map((vote) => (
+          <div className="col-md-4 mb-4" key={vote.pk}>
+            <Card>
+              <Card.Img variant="top" src={votecard} alt="Vote" /> {/* 이미지 경로 설정 */}
+              <Card.Body>
+                <Card.Title>{vote.title}</Card.Title>
+                <Card.Text>{vote.content}</Card.Text>
+                <Button 
+                  variant="success" 
+                  onClick={() => handleVote(vote.pk)} 
+                  className="me-2">
+                  Like {vote.likes}
+                </Button>
+              </Card.Body>
+            </Card>
+          </div>
+        ))}
+      </div>
+
+      <footer className="mt-5">
+        <Link to="/home">Back to Homepage</Link>
       </footer>
     </div>
   );
 }
-

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import axios from 'axios'; // axios import 추가
+import axios from 'axios';
 import '../../App.css';
+import BackgroundImage from '../../assets/images/background-img2.png';
 
 export default function SignInPage() {
   const navigate = useNavigate();
@@ -32,35 +33,58 @@ export default function SignInPage() {
     setError(''); // 이전 오류 상태 초기화
 
     try {
-      // 로그인 API 요청 보내기
-      const response = await axios.post('http://localhost:8000/users/login/', {
-        username: formData.username,
-        password: formData.password,
-      });
+      // 서버에서 저장된 사용자 정보 불러오기
+      const response = await axios.get('http://127.0.0.1:8000/users/'); // 등록된 사용자 목록을 가져옴
 
-      if (response.status === 201) {
+      const users = response.data; // 사용자 데이터
+      const user = users.find(
+        (u) => u.username === formData.username && u.password === formData.password
+      );
+
+      if (user) {
         // 로그인 성공 시 홈 페이지로 이동
         navigate('/home');
       } else {
-        // 다른 상태 코드에 대한 처리
-        setError('로그인에 실패했습니다.');
+        // 사용자 정보가 일치하지 않는 경우
+        setError('잘못된 사용자 이름 또는 비밀번호입니다.');
       }
     } catch (error) {
       // 오류 처리
       setError('로그인 요청 중 오류가 발생했습니다.');
       console.error('로그인 요청 중 오류가 발생했습니다.', error);
+
+      if (error.response && error.response.data && error.response.data.detail) {
+        setError(error.response.data.detail);
+      } else {
+        setError('서버에 문제가 발생했습니다.');
+      }
     } finally {
       setLoading(false); // 로딩 상태 비활성화
     }
   };
 
+  const headerStyle = {
+    width: "100%",
+    height: "100vh",
+    backgroundImage: `url(${BackgroundImage})`,
+    backgroundPosition: "center",
+    backgroundRepeat: "no-repeat",
+    backgroundSize: "cover",
+    margin: 0, // 여백 제거
+    padding: 0, // 여백 제거
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    flexDirection: "column",
+  };
+
   return (
-    <div className="text-center m-5-auto">
+    <div style={headerStyle} className="text-center">
       <h2>Sign in to us</h2>
       {error && <p className="error">{error}</p>}
       <form onSubmit={handleSubmit}>
         <p>
-          <label>Username or email address</label>
+          <label>Username</label>
           <br />
           <input
             type="text"
@@ -72,9 +96,6 @@ export default function SignInPage() {
         </p>
         <p>
           <label>Password</label>
-          <Link to="/forget-password">
-            <label className="right-label">Forget password?</label>
-          </Link>
           <br />
           <input
             type="password"
